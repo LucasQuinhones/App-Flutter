@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
+import 'package:movies_v2/movies_list.dart';
+import 'package:movies_v2/movies_list_error.dart';
 
 void main() {
   runApp(const MainApp());
@@ -14,32 +18,48 @@ class MainApp extends StatefulWidget {
 }
 
 class _MainAppState extends State<MainApp> {
-  void _getListApi(){
+  MoviesList? movies;
+  MoviesListError? moviesListError;
+
+  Future<void> _getListagemAPI() async {
     http.get(
       Uri.https('api.themoviedb.org', '/4/list/1'),
       headers: {
         'authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI3NGJkZWVmNDg5ODhlMTk0MWVlN2JmNWY0MTgzMWQ0NyIsInN1YiI6IjY1ZmM0NGM2MGJjNTI5MDE0OWFlNDY5ZSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.CVkb6GF2r97G91PBwGuFC9vScg8S-6ZGAjyxPyoKMn4',
-        'content-type': 'application/json'
-      }
+        'content-type': 'application/json;charset=utf-8'
+      },
     ).then(
-      (Response value) => print(value.body),
-    );
+      (Response value) {
+        if (value.statusCode == 200) {
+          movies = MoviesList.fromJson(
+            jsonDecode(value.body),
+          );
+          setState(() {});
+        } else if([401, 404, 500].contains(value.statusCode)) {
+          moviesListError = MoviesListError.fromJson(
+            jsonDecode(value.body)
+            ,
+          );
+        }
+      },
+    ).whenComplete(() => setState(() {}));
   }
 
-
   @override
-  void initState(){
+  void initState() {
     super.initState();
-    _getListApi();
+    _getListagemAPI();
   }
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       home: Scaffold(
         backgroundColor: Colors.blue,
         body: Center(
-          child: Text('Terceira Aula!'),
+          child: moviesListError != null
+            ? Text(moviesListError.toString())
+            : Text('Movie: ${movies?.name ?? "Erro"}')
         ),
       ),
     );
